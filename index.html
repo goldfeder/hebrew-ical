@@ -343,6 +343,8 @@
          }
 
          const gdate = hdate.greg();
+         if (gdate < startDate) continue;
+
          const gDateStr = new Date(Date.UTC(gdate.getFullYear(), gdate.getMonth(), gdate.getDate()))
            .toISOString()
            .slice(0, 10)
