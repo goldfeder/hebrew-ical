@@ -252,7 +252,7 @@ bcvl<!DOCTYPE html>
            const startYear = new Hebcal.HDate(start).getFullYear();
            const preview = [];
 
-           for (let i = 0; i < 5; i++) {
+           for (let i = 0; preview.length < 5; i++) {
              const year = startYear + i;
              let m = month;
              if (month === 'Adar') m = isHebrewLeapYear(year) ? 'Adar II' : 'Adar';
@@ -260,7 +260,7 @@ bcvl<!DOCTYPE html>
              if (month === 'Adar II') m = isHebrewLeapYear(year) ? 'Adar II' : 'Adar';
              try {
                const h = new Hebcal.HDate(day, m, year);
-               if (h.greg() < start) { i--; continue; }
+               if (h.greg() < start) continue; 
                preview.push(`${h.getFullYear()}: ${h.greg().toDateString()}`);
              } catch (e) {
                preview.push(`${year}: Invalid date`);
