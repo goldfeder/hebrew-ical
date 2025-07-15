@@ -153,36 +153,34 @@
 
 <body>
   <h1>Hebrew Recurrence Creator</h1>
-  <div class="inline-group">
-    <label for="hebrew-day">Day</label>
-    <select id="hebrew-day"></select>
-    <label for="hebrew-month">Month</label>
-    <select id="hebrew-month">
-      <option value="Nisan">Nisan</option>
-      <option value="Iyyar">Iyyar</option>
-      <option value="Sivan">Sivan</option>
-      <option value="Tamuz">Tammuz</option>
-      <option value="Av">Av</option>
-      <option value="Elul">Elul</option>
-      <option value="Tishrei">Tishrei</option>
-      <option value="Heshvan">Cheshvan</option>
-      <option value="Kislev">Kislev</option>
-      <option value="Tevet">Tevet</option>
-      <option value="Shevat">Shevat</option>
-      <option value="Adar">Adar</option>
-      <option value="Adar I">Adar I</option>
-      <option value="Adar II">Adar II</option>
-    </select>
-  </div>
-  <div class="inline-group">
-    <label for="start-date">Start from</label>
-    <input id="start-date" type="date">
-    <label for="num-years">For</label>
-    <input id="num-years" type="number" value="50" min="1">
-    <span>years</span>
-  </div>
+  <label for="hebrew-day">Day</label>
+  <select id="hebrew-day"></select>
+  <label for="hebrew-month">Month</label>
+  <select id="hebrew-month">
+    <option value="Nisan">Nisan</option>
+    <option value="Iyyar">Iyyar</option>
+    <option value="Sivan">Sivan</option>
+    <option value="Tamuz">Tammuz</option>
+    <option value="Av">Av</option>
+    <option value="Elul">Elul</option>
+    <option value="Tishrei">Tishrei</option>
+    <option value="Heshvan">Cheshvan</option>
+    <option value="Kislev">Kislev</option>
+    <option value="Tevet">Tevet</option>
+    <option value="Shevat">Shevat</option>
+    <option value="Adar">Adar</option>
+    <option value="Adar I">Adar I</option>
+    <option value="Adar II">Adar II</option>
+  </select>
+  <label for="start-date">Start from</label>
+  <input id="start-date" type="date">
+  <label for="num-years">For</label>
+  <input id="num-years" type="number" value="50" min="1">
+  <span>years</span>
+  <br clear="all">
   <label for="summary">Name</label>
   <input id="summary" type="text">
+  <br clear="all">
   <label for="description">Description</label>
   <textarea id="description" rows="3"></textarea>
   <button onclick="generateIcs()">Generate ICS</button>
