@@ -71,6 +71,8 @@
     textarea {
       width: 100%;
       resize: vertical;
+      margin-top: 10px;
+      box-sizing: border-box;
     }
 
     button {
@@ -175,7 +177,7 @@
   <input id="summary" type="text">
   <br clear="all" />
   <label for="description">Description</label>
-  <textarea id="description" rows="3" style="margin-top: 10px"></textarea>
+  <textarea id="description" rows="3"></textarea>
   <button onclick="generateIcs()">Generate ICS</button>
   <div id="status"></div>
   <a id="importLink" href="https://calendar.google.com/calendar/u/0/r/settings/export" target="_blank"
