@@ -1,397 +1,407 @@
 bcvl<!DOCTYPE html>
 <html lang="en" style="background: #5784ab">
-   <head>
-      <meta charset="UTF-8" />
-      <title>Hebrew Recurrence Creator</title>
-      <script src="https://cdn.jsdelivr.net/gh/hebcal/hebcal-js@master/client/hebcal.noloc.min.js"></script>
-      <style>
-         body {
-         font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-         margin: 20px auto;
-         max-width: 550px;
-         padding: 25px;
-         background: linear-gradient(145deg, #e5e7eb, #ffffff); /* light grey gradient */
-         border-radius: 12px;
-         box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
-         color: #333;
-         }
-         h1 {
-         text-align: center;
-         font-size: 26px;
-         margin-bottom: 24px;
-         color: #1565c0; /* blue */
-         }
-         label {
-         font-weight: 600;
-         margin-right: 8px;
-         color: #333;
-         }
-         input,
-         select,
-         textarea {
-         font-size: 15px;
-         border: 1px solid #ccc;
-         border-radius: 6px;
-         padding: 8px;
-         margin-bottom: 12px;
-         background-color: #fefefe;
-         transition: border 0.2s ease;
-         }
-         input:focus,
-         select:focus,
-         textarea:focus {
-         border-color: #1565c0;
-         outline: none;
-         box-shadow: 0 0 5px rgba(21, 101, 192, 0.2);
-         }
-         select#hebrew-day {
-         width: 60px;
-         }
-         select#hebrew-month {
-         width: 130px;
-         }
-         input#start-date {
-         width: 130px;
-         }
-         input#num-years {
-         width: 60px;
-         }
-         textarea {
-         width: 100%;
-         resize: vertical;
-         }
-         .inline-group {
-         display: flex;
-         flex-wrap: wrap;
-         align-items: center;
-         gap: 12px;
-         margin-bottom: 12px;
-         }
-         button {
-         padding: 10px 18px;
-         background-color: #1565c0; /* blue */
-         color: white;
-         border: none;
-         border-radius: 6px;
-         font-size: 15px;
-         font-weight: 600;
-         cursor: pointer;
-         transition: background-color 0.3s ease;
-         }
-         button:hover {
-         background-color: #0d47a1; /* darker blue */
-         }
-         #previewDates {
-         margin-top: 18px;
-         font-size: 15px;
-         background: #ffffff;
-         padding: 12px;
-         border-radius: 8px;
-         border: 1px solid #ddd;
-         color: #444;
-         }
-         #status {
-         margin-top: 10px;
-         font-size: 14px;
-         color: #1565c0;
-         }
-         a#importLink {
-         display: inline-block;
-         margin-top: 10px;
-         color: #1565c0;
-         text-decoration: none;
-         font-weight: bold;
-         }
-         a#importLink:hover {
-         text-decoration: underline;
-         }
-         #importInstructions {
-         margin-top: 6px;
-         font-size: 14px;
-         color: #555;
-         }
-         footer {
-         margin-top: 40px;
-         font-size: 12px;
-         text-align: center;
-         color: #999;
-         }
-         footer a {
-         color: #999;
-         text-decoration: none;
-         }
-         footer a:hover {
-         color: #1565c0;
-         }
-      </style>
-   </head>
-   <body>
-      <h1>Hebrew Recurrence Creator</h1>
-      <div class="inline-group">
-         <label for="hebrew-day">Day</label>
-         <select id="hebrew-day"></select>
-         <label for="hebrew-month">Month</label>
-         <select id="hebrew-month">
-            <option value="Nisan">Nisan</option>
-            <option value="Iyyar">Iyyar</option>
-            <option value="Sivan">Sivan</option>
-            <option value="Tamuz">Tammuz</option>
-            <option value="Av">Av</option>
-            <option value="Elul">Elul</option>
-            <option value="Tishrei">Tishrei</option>
-            <option value="Heshvan">Cheshvan</option>
-            <option value="Kislev">Kislev</option>
-            <option value="Tevet">Tevet</option>
-            <option value="Shevat">Shevat</option>
-            <option value="Adar">Adar</option>
-            <option value="Adar I">Adar I</option>
-            <option value="Adar II">Adar II</option>
-         </select>
-      </div>
-      <div class="inline-group">
-         <label for="start-date">Start from</label>
-         <input id="start-date" type="date">
-         <label for="num-years">For</label>
-         <input id="num-years" type="number" value="50" min="1">
-         <span>years</span>
-      </div>
-      <label for="summary">Name</label>
-      <input id="summary" type="text">
-      <label for="description">Description</label>
-      <textarea id="description" rows="3"></textarea>
-      <button onclick="generateIcs()">Generate ICS</button>
-      <div id="status"></div>
-      <a id="importLink" href="https://calendar.google.com/calendar/u/0/r/settings/export" target="_blank" style="display:none;">
-      Click here to import to Google Calendar
-      </a>
-      <div id="importInstructions" style="display:none;">
-         Select the file <strong><span id="filename"></span></strong> that you just downloaded and import it.
-      </div>
-      <div id="previewDates"></div>
-      <script>
-         let originalHebrewDateStr = '';
-         let lastValidHebrewDate = { day: null, month: null };
-
-         function isValidHebrewDate(day, month) {
-         // Check every year in the 19-year cycle
-         for (let year = 5780; year < 5799; year++) {
-         const isLeap = isHebrewLeapYear(year);
-         let actualMonth = month;
-         if (month === 'Adar') actualMonth = isLeap ? 'Adar II' : 'Adar';
-         if (month === 'Adar I') actualMonth = isLeap ? 'Adar I' : 'Adar';
-         if (month === 'Adar II') actualMonth = isLeap ? 'Adar II' : 'Adar';
-
-         try {
-           const hdate = new Hebcal.HDate(day, actualMonth, year);
-           if (hdate.getDate() === day && hdate.getMonthName() === actualMonth) {
-             return true;
-           }
-         } catch (e) {
-           continue;
-         }
-         }
-         return false;
-         }
-
-         function isHebrewLeapYear(year) {
-           return [0, 3, 6, 8, 11, 14, 17].includes(year % 19);
-         }
-
-         function renderHebrewDate(hdate, override = null) {
-           const day = hdate.getDate();
-           let month = override || hdate.getMonthName();
-           const pretty = { 'Heshvan': 'Cheshvan', 'Tamuz': 'Tammuz' };
-           return `${day} ${pretty[month] || month}`;
-         }
-
-         function populateDayDropdown() {
-           const daySelect = document.getElementById('hebrew-day');
-           for (let i = 1; i <= 30; i++) {
-             const opt = document.createElement('option');
-             opt.value = i;
-             opt.textContent = i;
-             daySelect.appendChild(opt);
-           }
-         }
-
-         function updateHebrewSummaryAndDescription() {
-         const daySel = document.getElementById('hebrew-day');
-         const monthSel = document.getElementById('hebrew-month');
-         const day = parseInt(daySel.value, 10);
-         const month = monthSel.value;
-
-         // Adar months never have 30 days
-         if (day === 30 && (month === 'Adar' || month === 'Adar I' || month === 'Adar II')) {
-         alert("This date does not exist in any year.");
-         daySel.value = lastValidHebrewDate.day;
-         monthSel.value = lastValidHebrewDate.month;
-         return;
-         }
-
-         const hdate = new Hebcal.HDate(day, month);
-         const newStr = renderHebrewDate(hdate, month);
-         const summary = document.getElementById('summary');
-         const description = document.getElementById('description');
-
-         if (summary.value.includes(originalHebrewDateStr)) {
-         summary.value = summary.value.replace(originalHebrewDateStr, newStr);
-         }
-         if (description.value.includes(originalHebrewDateStr)) {
-         description.value = description.value.replace(originalHebrewDateStr, newStr);
-         }
-
-         originalHebrewDateStr = newStr;
-         lastValidHebrewDate = { day, month };
-         showNextFiveDates();
-         }
-
-         function showNextFiveDates() {
-           const day = parseInt(document.getElementById('hebrew-day').value, 10);
-           const month = document.getElementById('hebrew-month').value;
-           const start = new Date(document.getElementById('start-date').value);
-           const startYear = new Hebcal.HDate(start).getFullYear();
-           const preview = [];
-
-           for (let i = 0; preview.length < 5; i++) {
-             const year = startYear + i;
-             let m = month;
-             if (month === 'Adar') m = isHebrewLeapYear(year) ? 'Adar II' : 'Adar';
-             if (month === 'Adar I') m = isHebrewLeapYear(year) ? 'Adar I' : 'Adar';
-             if (month === 'Adar II') m = isHebrewLeapYear(year) ? 'Adar II' : 'Adar';
-             try {
-               const h = new Hebcal.HDate(day, m, year);
-               if (h.greg() >= start) preview.push(`${h.getFullYear()}: ${h.greg().toDateString()}`);
-             } catch (e) {
-               preview.push(`${year}: Invalid date`);
-             }
-           }
-           document.getElementById('previewDates').innerHTML = '<strong>Next 5 Gregorian dates:</strong><br>' + preview.join('<br>');
-         }
-
-         document.addEventListener("DOMContentLoaded", () => {
-           populateDayDropdown();
-           const today = new Date();
-           document.getElementById('start-date').value = today.toISOString().split('T')[0];
-           const h = new Hebcal.HDate(today);
-           const hStr = renderHebrewDate(h);
-           originalHebrewDateStr = hStr;
-           document.getElementById('hebrew-day').value = h.getDate();
-           document.getElementById('hebrew-month').value = h.getMonthName();
-           document.getElementById('summary').value = hStr;
-           document.getElementById('description').value = 'Recurrence generated for Hebrew date ' + hStr;
-           document.getElementById('hebrew-day').addEventListener('change', updateHebrewSummaryAndDescription);
-           document.getElementById('hebrew-month').addEventListener('change', updateHebrewSummaryAndDescription);
-           document.getElementById('start-date').addEventListener('change', showNextFiveDates);
-           showNextFiveDates();
-         });
-
-         ltitcbr
-         function generateIcs() {
-         const day = parseInt(document.getElementById('hebrew-day').value, 10);
-         const monthInput = document.getElementById('hebrew-month').value;
-         const startDateInput = document.getElementById('start-date').value;
-         const numYears = parseInt(document.getElementById('num-years').value, 10) || 50;
-         const summary = document.getElementById('summary').value;
-         const description = document.getElementById('description').value;
-         const statusDiv = document.getElementById('status');
-         const importLink = document.getElementById('importLink');
-         const importInstructions = document.getElementById('importInstructions');
-         const filenameSpan = document.getElementById('filename');
-
-         statusDiv.textContent = 'Generating...';
-         importLink.style.display = 'none';
-         importInstructions.style.display = 'none';
-
-         const today = new Date();
-         const startDate = startDateInput ? new Date(startDateInput) : today;
-         const startYear = new Hebcal.HDate(startDate).getFullYear();
-         const endYear = startYear + numYears;
-
-         const rdates = [];
-         let fallbackChoice = null;
-         let fallbackPrompted = false;
-
-         for (let hy = startYear; hy < endYear; hy++) {
-         const isLeap = isHebrewLeapYear(hy);
-         let actualMonth = monthInput;
-         if (monthInput === 'Adar') actualMonth = isLeap ? 'Adar II' : 'Adar';
-         if (monthInput === 'Adar I') actualMonth = isLeap ? 'Adar I' : 'Adar';
-         if (monthInput === 'Adar II') actualMonth = isLeap ? 'Adar II' : 'Adar';
-
-         let hdate = new Hebcal.HDate(day, actualMonth, hy);
-
-         // If the date is invalid (e.g., 30 in a 29-day month)
-         if (hdate.getDate() !== day) {
-           if (!fallbackPrompted) {
-             fallbackChoice = confirm(
-               `The date ${day} ${monthInput} does not exist in some years.\n\nClick OK to move the event to the 1st of the next month,\nor Cancel to use the 29th of the current month.`
-             );
-             fallbackPrompted = true;
-           }
-
-           if (fallbackChoice === true) {
-             hdate = new Hebcal.HDate(1, actualMonth, hy).next();
-           } else {
-             hdate = new Hebcal.HDate(29, actualMonth, hy);
-           }
-
-           // If even fallback fails (e.g., trying 29 in a month that has 28)
-           if (hdate.getMonthName() !== actualMonth && fallbackChoice === false) {
-             alert(`Could not resolve a valid date for ${day} ${monthInput} in ${hy}.`);
-             return;
-           }
-         }
-
-         const gdate = hdate.greg();
-         if (gdate < startDate) continue;
-
-         const gDateStr = new Date(Date.UTC(gdate.getFullYear(), gdate.getMonth(), gdate.getDate()))
-           .toISOString()
-           .slice(0, 10)
-           .replace(/-/g, '');
-         rdates.push(gDateStr);
-         }
-
-         if (rdates.length === 0) {
-         statusDiv.textContent = 'No valid dates were generated.';
-         return;
-         }
-
-         const dtstart = rdates[0];
-         const rdateBlock = 'RDATE;VALUE=DATE:\n ' + rdates.join(',\n ');
-         const icsContent = [
-         'BEGIN:VCALENDAR',
-         'VERSION:2.0',
-         'PRODID:-//Hebrew Date Recurrence via Hebcal API//EN',
-         'BEGIN:VEVENT',
-         `SUMMARY:${summary}`,
-         `DTSTART;VALUE=DATE:${dtstart}`,
-         rdateBlock,
-         `DESCRIPTION:${description}`,
-         'END:VEVENT',
-         'END:VCALENDAR'
-         ].join('\r\n');
-
-         const filename = `hebrew-${monthInput.replace(/\s+/g, '-')}-${day}.ics`;
-         const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
-         const url = URL.createObjectURL(blob);
-         const a = document.createElement('a');
-         a.href = url;
-         a.download = filename;
-         document.body.appendChild(a);
-         a.click();
-         document.body.removeChild(a);
-         URL.revokeObjectURL(url);
-
-         statusDiv.textContent = 'Download complete.';
-         importLink.style.display = 'inline-block';
-         importInstructions.style.display = 'block';
-         filenameSpan.textContent = filename;
-         }
-
-      </script>
-      <footer>
-         <p>By <a href="mailto:goldfeder@gmail.com">Chanoch Goldfeder</a></p>
-      </footer>
-   </body>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Hebrew Recurrence Creator</title>
+    <script src="https://cdn.jsdelivr.net/gh/hebcal/hebcal-js@master/client/hebcal.noloc.min.js"></script>
+    <style>
+      body {
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      margin: 20px auto;
+      max-width: 550px;
+      padding: 25px;
+      background: linear-gradient(145deg, #e5e7eb, #ffffff); /* light grey gradient */
+      border-radius: 12px;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+      color: #333;
+      }
+      h1 {
+      text-align: center;
+      font-size: 26px;
+      margin-bottom: 24px;
+      color: #1565c0; /* blue */
+      }
+      label {
+      font-weight: 600;
+      margin-right: 8px;
+      color: #333;
+      }
+      input,
+      select,
+      textarea {
+      font-size: 15px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      padding: 8px;
+      margin-bottom: 12px;
+      background-color: #fefefe;
+      transition: border 0.2s ease;
+      }
+      input:focus,
+      select:focus,
+      textarea:focus {
+      border-color: #1565c0;
+      outline: none;
+      box-shadow: 0 0 5px rgba(21, 101, 192, 0.2);
+      }
+      select#hebrew-day {
+      width: 60px;
+      }
+      select#hebrew-month {
+      width: 130px;
+      }
+      input#start-date {
+      width: 130px;
+      }
+      input#num-years {
+      width: 60px;
+      }
+      textarea {
+      width: 100%;
+      resize: vertical;
+      }
+      .inline-group {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+      }
+      button {
+      padding: 10px 18px;
+      background-color: #1565c0; /* blue */
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+      }
+      button:hover {
+      background-color: #0d47a1; /* darker blue */
+      }
+      #previewDates {
+      margin-top: 18px;
+      font-size: 15px;
+      background: #ffffff;
+      padding: 12px;
+      border-radius: 8px;
+      border: 1px solid #ddd;
+      color: #444;
+      }
+      #status {
+      margin-top: 10px;
+      font-size: 14px;
+      color: #1565c0;
+      }
+      a#importLink {
+      display: inline-block;
+      margin-top: 10px;
+      color: #1565c0;
+      text-decoration: none;
+      font-weight: bold;
+      }
+      a#importLink:hover {
+      text-decoration: underline;
+      }
+      #importInstructions {
+      margin-top: 6px;
+      font-size: 14px;
+      color: #555;
+      }
+      footer {
+      margin-top: 40px;
+      font-size: 12px;
+      text-align: center;
+      color: #999;
+      }
+      footer a {
+      color: #999;
+      text-decoration: none;
+      }
+      footer a:hover {
+      color: #1565c0;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Hebrew Recurrence Creator</h1>
+    <div class="inline-group">
+      <label for="hebrew-day">Day</label>
+      <select id="hebrew-day"></select>
+      <label for="hebrew-month">Month</label>
+      <select id="hebrew-month">
+        <option value="Nisan">Nisan</option>
+        <option value="Iyyar">Iyyar</option>
+        <option value="Sivan">Sivan</option>
+        <option value="Tamuz">Tammuz</option>
+        <option value="Av">Av</option>
+        <option value="Elul">Elul</option>
+        <option value="Tishrei">Tishrei</option>
+        <option value="Heshvan">Cheshvan</option>
+        <option value="Kislev">Kislev</option>
+        <option value="Tevet">Tevet</option>
+        <option value="Shevat">Shevat</option>
+        <option value="Adar">Adar</option>
+        <option value="Adar I">Adar I</option>
+        <option value="Adar II">Adar II</option>
+      </select>
+    </div>
+    <div class="inline-group">
+      <label for="start-date">Start from</label>
+      <input id="start-date" type="date">
+      <label for="num-years">For</label>
+      <input id="num-years" type="number" value="50" min="1">
+      <span>years</span>
+    </div>
+    <label for="summary">Name</label>
+    <input id="summary" type="text">
+    <label for="description">Description</label>
+    <textarea id="description" rows="3"></textarea>
+    <button onclick="generateIcs()">Generate ICS</button>
+    <div id="status"></div>
+    <a id="importLink" href="https://calendar.google.com/calendar/u/0/r/settings/export" target="_blank" style="display:none;">
+    Click here to import to Google Calendar
+    </a>
+    <div id="importInstructions" style="display:none;">
+      Select the file <strong><span id="filename"></span></strong> that you just downloaded and import it.
+    </div>
+    <div id="previewDates"></div>
+    <script>
+      let originalHebrewDateStr = '';
+      let lastValidHebrewDate = { day: null, month: null };
+      
+      function isValidHebrewDate(day, month) {
+      // Check every year in the 19-year cycle
+      for (let year = 5780; year < 5799; year++) {
+      const isLeap = isHebrewLeapYear(year);
+      let actualMonth = month;
+      if (month === 'Adar') actualMonth = isLeap ? 'Adar II' : 'Adar';
+      if (month === 'Adar I') actualMonth = isLeap ? 'Adar I' : 'Adar';
+      if (month === 'Adar II') actualMonth = isLeap ? 'Adar II' : 'Adar';
+      
+      try {
+        const hdate = new Hebcal.HDate(day, actualMonth, year);
+        if (hdate.getDate() === day && hdate.getMonthName() === actualMonth) {
+          return true;
+        }
+      } catch (e) {
+        continue;
+      }
+      }
+      return false;
+      }
+      
+      function isHebrewLeapYear(year) {
+        return [0, 3, 6, 8, 11, 14, 17].includes(year % 19);
+      }
+      
+      function renderHebrewDate(hdate, override = null) {
+        const day = hdate.getDate();
+        let month = override || hdate.getMonthName();
+        const pretty = { 'Heshvan': 'Cheshvan', 'Tamuz': 'Tammuz' };
+        return `${day} ${pretty[month] || month}`;
+      }
+      
+      function populateDayDropdown() {
+        const daySelect = document.getElementById('hebrew-day');
+        for (let i = 1; i <= 30; i++) {
+          const opt = document.createElement('option');
+          opt.value = i;
+          opt.textContent = i;
+          daySelect.appendChild(opt);
+        }
+      }
+      
+      function updateHebrewSummaryAndDescription() {
+      const daySel = document.getElementById('hebrew-day');
+      const monthSel = document.getElementById('hebrew-month');
+      const day = parseInt(daySel.value, 10);
+      const month = monthSel.value;
+      
+      // Adar months never have 30 days
+      if (day === 30 && (month === 'Adar' || month === 'Adar I' || month === 'Adar II')) {
+      alert("This date does not exist in any year.");
+      daySel.value = lastValidHebrewDate.day;
+      monthSel.value = lastValidHebrewDate.month;
+      return;
+      }
+      
+      const hdate = new Hebcal.HDate(day, month);
+      const newStr = renderHebrewDate(hdate, month);
+      const summary = document.getElementById('summary');
+      const description = document.getElementById('description');
+      
+      if (summary.value.includes(originalHebrewDateStr)) {
+      summary.value = summary.value.replace(originalHebrewDateStr, newStr);
+      }
+      if (description.value.includes(originalHebrewDateStr)) {
+      description.value = description.value.replace(originalHebrewDateStr, newStr);
+      }
+      
+      originalHebrewDateStr = newStr;
+      lastValidHebrewDate = { day, month };
+      showNextFiveDates();
+      }
+      
+      function showNextFiveDates() {
+      const day = parseInt(document.getElementById('hebrew-day').value, 10);
+      const month = document.getElementById('hebrew-month').value;
+      const start = new Date(document.getElementById('start-date').value);
+      const startYear = new Hebcal.HDate(start).getFullYear();
+      const preview = [];
+      
+      let i = 0;
+      while (preview.length < 5) {
+      const year = startYear + i;
+      let m = month;
+      
+      if (month === 'Adar') m = isHebrewLeapYear(year) ? 'Adar II' : 'Adar';
+      if (month === 'Adar I') m = isHebrewLeapYear(year) ? 'Adar I' : 'Adar';
+      if (month === 'Adar II') m = isHebrewLeapYear(year) ? 'Adar II' : 'Adar';
+      
+      try {
+      const h = new Hebcal.HDate(day, m, year);
+      const g = h.greg();
+      if (g >= start) {
+      preview.push(`${h.getFullYear()}: ${g.toDateString()}`);
+      }
+      } catch (e) {
+      preview.push(`${year}: Invalid date`);
+      }
+      
+      i++; // Ensure we always move forward to prevent freezing
+      }
+      
+      document.getElementById('previewDates').innerHTML =
+      '<strong>Next 5 Gregorian dates:</strong><br>' + preview.join('<br>');
+      }
+      
+      document.addEventListener("DOMContentLoaded", () => {
+        populateDayDropdown();
+        const today = new Date();
+        document.getElementById('start-date').value = today.toISOString().split('T')[0];
+        const h = new Hebcal.HDate(today);
+        const hStr = renderHebrewDate(h);
+        originalHebrewDateStr = hStr;
+        document.getElementById('hebrew-day').value = h.getDate();
+        document.getElementById('hebrew-month').value = h.getMonthName();
+        document.getElementById('summary').value = hStr;
+        document.getElementById('description').value = 'Recurrence generated for Hebrew date ' + hStr;
+        document.getElementById('hebrew-day').addEventListener('change', updateHebrewSummaryAndDescription);
+        document.getElementById('hebrew-month').addEventListener('change', updateHebrewSummaryAndDescription);
+        document.getElementById('start-date').addEventListener('change', showNextFiveDates);
+        showNextFiveDates();
+      });
+      
+      ltitcbr
+      function generateIcs() {
+      const day = parseInt(document.getElementById('hebrew-day').value, 10);
+      const monthInput = document.getElementById('hebrew-month').value;
+      const startDateInput = document.getElementById('start-date').value;
+      const numYears = parseInt(document.getElementById('num-years').value, 10) || 50;
+      const summary = document.getElementById('summary').value;
+      const description = document.getElementById('description').value;
+      const statusDiv = document.getElementById('status');
+      const importLink = document.getElementById('importLink');
+      const importInstructions = document.getElementById('importInstructions');
+      const filenameSpan = document.getElementById('filename');
+      
+      statusDiv.textContent = 'Generating...';
+      importLink.style.display = 'none';
+      importInstructions.style.display = 'none';
+      
+      const today = new Date();
+      const startDate = startDateInput ? new Date(startDateInput) : today;
+      const startYear = new Hebcal.HDate(startDate).getFullYear();
+      const endYear = startYear + numYears;
+      
+      const rdates = [];
+      let fallbackChoice = null;
+      let fallbackPrompted = false;
+      
+      for (let hy = startYear; hy < endYear; hy++) {
+      const isLeap = isHebrewLeapYear(hy);
+      let actualMonth = monthInput;
+      if (monthInput === 'Adar') actualMonth = isLeap ? 'Adar II' : 'Adar';
+      if (monthInput === 'Adar I') actualMonth = isLeap ? 'Adar I' : 'Adar';
+      if (monthInput === 'Adar II') actualMonth = isLeap ? 'Adar II' : 'Adar';
+      
+      let hdate = new Hebcal.HDate(day, actualMonth, hy);
+      
+      // If the date is invalid (e.g., 30 in a 29-day month)
+      if (hdate.getDate() !== day) {
+        if (!fallbackPrompted) {
+          fallbackChoice = confirm(
+            `The date ${day} ${monthInput} does not exist in some years.\n\nClick OK to move the event to the 1st of the next month,\nor Cancel to use the 29th of the current month.`
+          );
+          fallbackPrompted = true;
+        }
+      
+        if (fallbackChoice === true) {
+          hdate = new Hebcal.HDate(1, actualMonth, hy).next();
+        } else {
+          hdate = new Hebcal.HDate(29, actualMonth, hy);
+        }
+      
+        // If even fallback fails (e.g., trying 29 in a month that has 28)
+        if (hdate.getMonthName() !== actualMonth && fallbackChoice === false) {
+          alert(`Could not resolve a valid date for ${day} ${monthInput} in ${hy}.`);
+          return;
+        }
+      }
+      
+      const gdate = hdate.greg();
+      if (gdate < startDate) continue;
+      
+      const gDateStr = new Date(Date.UTC(gdate.getFullYear(), gdate.getMonth(), gdate.getDate()))
+        .toISOString()
+        .slice(0, 10)
+        .replace(/-/g, '');
+      rdates.push(gDateStr);
+      }
+      
+      if (rdates.length === 0) {
+      statusDiv.textContent = 'No valid dates were generated.';
+      return;
+      }
+      
+      const dtstart = rdates[0];
+      const rdateBlock = 'RDATE;VALUE=DATE:\n ' + rdates.join(',\n ');
+      const icsContent = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//Hebrew Date Recurrence via Hebcal API//EN',
+      'BEGIN:VEVENT',
+      `SUMMARY:${summary}`,
+      `DTSTART;VALUE=DATE:${dtstart}`,
+      rdateBlock,
+      `DESCRIPTION:${description}`,
+      'END:VEVENT',
+      'END:VCALENDAR'
+      ].join('\r\n');
+      
+      const filename = `hebrew-${monthInput.replace(/\s+/g, '-')}-${day}.ics`;
+      const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      statusDiv.textContent = 'Download complete.';
+      importLink.style.display = 'inline-block';
+      importInstructions.style.display = 'block';
+      filenameSpan.textContent = filename;
+      }
+      
+    </script>
+    <footer>
+      <p>By <a href="mailto:goldfeder@gmail.com">Chanoch Goldfeder</a></p>
+    </footer>
+  </body>
 </html>
